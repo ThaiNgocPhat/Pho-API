@@ -1,0 +1,13 @@
+datasource db {
+  provider = "mongodb"  // Dùng MongoDB nếu bạn sử dụng MongoDB
+  url      = env("DATABASE_URL")  // URL kết nối cơ sở dữ liệu từ file .env
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Dish {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  name  String
+}
