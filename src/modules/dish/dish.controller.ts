@@ -36,4 +36,9 @@ export class DishController {
   async deleteDish(@Param('id') id: string): Promise<void> {
     return this.dishService.deleteDish(id);
   }
+
+  @Get(':id')
+  async getDish(@Param('id') id: string): Promise<Dish> {
+    return this.dishService.getDish(id);
+  }
 }

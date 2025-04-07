@@ -1,18 +1,22 @@
 import { Module } from '@nestjs/common';
-import { OrderService } from './order.service';
-import { OrderController } from './order.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DbCollections } from 'src/common/contants';
 import { OrderSchema } from 'src/models/order.schema';
-import { OrderItemModule } from 'src/modules/orderdetails/orderdetails.module';
+import { CartModule } from 'src/modules/cart/cart.module';
+import { DishModule } from 'src/modules/dish/dish.module';
+import { OrderController } from 'src/modules/order/order.controller';
+import { OrderService } from 'src/modules/order/order.service';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{name: DbCollections.ORDER, schema: OrderSchema}]),
-    OrderItemModule
+    MongooseModule.forFeature([
+      { name: DbCollections.ORDER, schema: OrderSchema },
+    ]),
+    DishModule,
+    CartModule,
   ],
   providers: [OrderService],
   controllers: [OrderController],
-  exports: [OrderService]
+  exports: [OrderService, MongooseModule],
 })
 export class OrderModule {}

@@ -6,11 +6,13 @@ import { ToppingController } from './topping.controller';
 import { ToppingService } from './topping.service';
 
 @Module({
-  imports:[
-    MongooseModule.forFeature([{ name: DbCollections.TOPPING, schema: ToppingSchema}])
+  imports: [
+    MongooseModule.forFeature([
+      { name: DbCollections.TOPPING, schema: ToppingSchema },
+    ]),
   ],
   providers: [ToppingService],
   controllers: [ToppingController],
-  exports: [ToppingService]
+  exports: [ToppingService],
 })
 export class ToppingModule {}
