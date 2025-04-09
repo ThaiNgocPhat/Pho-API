@@ -1,0 +1,3 @@
+  const group = (table.groups as (Group & { _id: Types.ObjectId })[]).find(
+        (g) => g._id.toString() === groupMongoId,
+      );

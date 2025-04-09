@@ -1,27 +1,11 @@
+// schemas/table-order.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class TableOder extends Document {
+export class TableOrder extends Document {
   @Prop({ required: true, unique: true })
   tableId: number;
-
-  @Prop({
-    type: [
-      {
-        dishId: String,
-        quantity: Number,
-        toppings: [String],
-        note: String,
-      },
-    ],
-  })
-  items: {
-    dishId: string;
-    quantity: number;
-    toppings: string[];
-    note?: string;
-  }[];
 
   @Prop({
     type: [
@@ -54,4 +38,4 @@ export class TableOder extends Document {
   }[];
 }
 
-export const TableOderSchema = SchemaFactory.createForClass(TableOder);
+export const TableOrderSchema = SchemaFactory.createForClass(TableOrder);

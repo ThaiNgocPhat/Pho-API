@@ -22,8 +22,4 @@ export class TableService {
   async getAllTables(): Promise<any> {
     return await this.tableModel.find().lean();
   }
-
-  async getTableById(tableId: number): Promise<any> {
-    return await this.tableModel.findOne({ tableId }).lean();
-  }
 }

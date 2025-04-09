@@ -1,109 +1,122 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { DbCollections } from 'src/common/contants';
 import { Dish } from 'src/models/dish.schema';
-import { TableOder } from 'src/models/table-order.schema';
-import { CreateTableDto } from 'src/modules/table-order/dto/create-order-table.dto';
+import { TableOrder } from 'src/models/table-order.schema';
 
 @Injectable()
 export class TableOderService {
   constructor(
     @InjectModel(DbCollections.TABLE_ORDER)
-    private readonly tableModel: Model<TableOder>,
+    private readonly tableModel: Model<TableOrder>,
     @InjectModel(DbCollections.DISH) private readonly dishModel: Model<Dish>,
-  ) {}
-  async create(body: CreateTableDto & { tableId: number }) {
-    const { tableId, items } = body;
+  ) {} // Controller: Đảm bảo rằng body có đủ các thuộc tính cần thiết
+  async getOrderByTableId(tableId: number) {
+    const table = await this.tableModel.findOne({ tableId });
 
-    // Kiểm tra nếu không có items thì ném lỗi
-    if (!items || items.length === 0) {
-      throw new BadRequestException('Không có món ăn nào để thêm vào giỏ');
+    if (!table) {
+      return { groups: [] }; // 👈 Fix trả về object đúng format
     }
 
-    // Tạo groupOrders với các món đã chọn
-    const groupOrders = await Promise.all(
-      items.map(async (item) => {
-        const dishDoc = await this.dishModel.findById(item.dishId);
-        if (!dishDoc) {
-          throw new NotFoundException(
-            `Không tìm thấy món ăn với ID: ${item.dishId}`,
-          );
-        }
-
-        const dish = dishDoc.toObject() as Dish;
-
-        // Đảm bảo rằng toppings là mảng chuỗi
-        const toppings = item.toppings.map((topping) => topping); // Chỉ lấy tên topping là chuỗi
-
-        return {
-          dishId: item.dishId,
-          name: dish.name,
-          toppings,
-          quantity: item.quantity,
-          note: item.note,
-        };
-      }),
-    );
-
-    // Kiểm tra lại nếu groupOrders có giá trị hợp lệ
-    if (groupOrders.length === 0) {
-      throw new BadRequestException('Không có món nào hợp lệ trong giỏ hàng.');
-    }
-
-    // Cập nhật bàn hiện tại, chỉ tạo một nhóm chung cho bàn
-    const existingOrder = await this.tableModel.findOne({ tableId });
-    if (existingOrder) {
-      // Nếu bàn đã có đơn, thêm món mới vào nhóm hiện có
-      existingOrder.items.push(...groupOrders);
-
-      if (existingOrder.groups.length > 0) {
-        existingOrder.groups[0].orders.push(...groupOrders); // <- Cập nhật nhóm
-      }
-
-      await existingOrder.save();
-      return existingOrder;
-    } else {
-      // Nếu bàn chưa có đơn, tạo mới đơn hàng với một nhóm chung
-      const newOrderTable = new this.tableModel({
-        tableId: tableId, // Sử dụng tableId trong khởi tạo
-        items: groupOrders,
-        groups: [
-          {
-            groupId: tableId, // groupId sử dụng tableId
-            groupName: `Nhóm ${tableId}`,
-            orders: groupOrders,
-          },
-        ],
-      });
-
-      // Kiểm tra và lưu bảng mới
-      try {
-        const savedOrderTable = await newOrderTable.save();
-        return savedOrderTable;
-      } catch (error) {
-        console.error('Lỗi khi lưu bảng mới:', error);
-        throw new InternalServerErrorException('Lỗi khi lưu bảng mới');
-      }
-    }
+    return table;
   }
 
-  async getAllOrders(): Promise<TableOder[]> {
-    return await this.tableModel.find().exec();
+  async createGroup(tableId: number, groupName: string) {
+    let tableOrder = await this.tableModel.findOne({ tableId });
+
+    if (!tableOrder) {
+      tableOrder = new this.tableModel({ tableId, groups: [] });
+    }
+
+    const nextGroupId =
+      tableOrder.groups.length > 0
+        ? Math.max(...tableOrder.groups.map((g) => g.groupId)) + 1
+        : 1;
+
+    const newGroup = {
+      _id: new Types.ObjectId(),
+      groupId: nextGroupId,
+      groupName,
+      orders: [],
+    };
+
+    tableOrder.groups.push(newGroup);
+    await tableOrder.save();
+
+    return { message: 'Tạo nhóm thành công', groupId: nextGroupId };
   }
 
-  async findByTableId(tableId: number) {
-    const order = await this.tableModel.findOne({ tableId });
-    if (!order) {
-      throw new NotFoundException(
-        `Không tìm thấy dữ liệu bàn với tableId: ${tableId}`,
-      );
+  async addOrderToGroup(data: {
+    tableId: number;
+    groupId: number;
+    dishId: string;
+    name: string;
+    quantity: number;
+    toppings: string[];
+    note?: string;
+  }) {
+    const { tableId, groupId, dishId, name, quantity, toppings, note } = data;
+
+    const table = await this.tableModel.findOne({ tableId });
+    if (!table) {
+      throw new Error('Bàn không tồn tại');
     }
-    return order;
+
+    const group = table.groups.find((g) => g.groupId === groupId);
+    if (!group) {
+      throw new Error('Nhóm không tồn tại');
+    }
+
+    group.orders.push({
+      dishId,
+      name,
+      quantity,
+      toppings,
+      note,
+    });
+
+    await table.save();
+
+    return { message: 'Thêm món vào nhóm thành công' };
+  }
+
+  async deleteGroup(tableId: number, groupId: number) {
+    const table = await this.tableModel.findOne({ tableId });
+    if (!table) throw new NotFoundException('Không tìm thấy bàn');
+
+    table.groups = table.groups.filter((group) => group.groupId !== groupId);
+    await table.save();
+
+    return { message: 'Đã xoá nhóm thành công' };
+  }
+
+  async removeDishFromGroup(data: {
+    tableId: number;
+    groupId: number;
+    dishId: string;
+  }) {
+    const { tableId, groupId, dishId } = data;
+
+    const table = await this.tableModel.findOne({ tableId });
+    if (!table) throw new NotFoundException('Không tìm thấy bàn');
+
+    const group = table.groups.find((g) => g.groupId === groupId);
+    if (!group) throw new NotFoundException('Không tìm thấy nhóm');
+
+    const dishIndex = group.orders.findIndex((d) => d.dishId === dishId);
+    if (dishIndex === -1) {
+      throw new NotFoundException('Không tìm thấy món trong nhóm');
+    }
+
+    const removedDish = group.orders[dishIndex];
+    group.orders.splice(dishIndex, 1);
+
+    await table.save();
+
+    return {
+      message: 'Xoá món khỏi nhóm thành công',
+      removedDish,
+    };
   }
 }

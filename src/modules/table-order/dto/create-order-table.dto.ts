@@ -1,12 +1,6 @@
-import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsInt,
-  IsOptional,
-  IsString,
-  Min,
-  ValidateNested,
-} from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, Min } from 'class-validator';
+
+// DTO cho món ăn
 export class ItemDto {
   @IsString()
   dishId: string;
@@ -24,9 +18,14 @@ export class ItemDto {
   quantity: number;
 }
 
-export class CreateTableDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ItemDto)
-  items: ItemDto[];
+// DTO cho bảng
+// dto/create-order.dto.ts
+export class CreateOrderDto {
+  tableId: number;
+  groupId: number;
+  dishId: string;
+  name: string;
+  quantity: number;
+  toppings: string[];
+  note?: string;
 }

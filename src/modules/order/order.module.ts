@@ -6,6 +6,7 @@ import { CartModule } from 'src/modules/cart/cart.module';
 import { DishModule } from 'src/modules/dish/dish.module';
 import { OrderController } from 'src/modules/order/order.controller';
 import { OrderService } from 'src/modules/order/order.service';
+import { TableModule } from 'src/modules/table/table.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { OrderService } from 'src/modules/order/order.service';
     ]),
     DishModule,
     CartModule,
+    TableModule,
   ],
   providers: [OrderService],
   controllers: [OrderController],
