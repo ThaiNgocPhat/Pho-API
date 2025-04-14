@@ -119,4 +119,27 @@ export class TableOderService {
       removedDish,
     };
   }
+
+  async updateDishQuantity(data: {
+    tableId: number;
+    groupId: number;
+    dishId: string;
+    quantity: number;
+  }) {
+    const { tableId, groupId, dishId, quantity } = data;
+
+    const table = await this.tableModel.findOne({ tableId });
+    if (!table) throw new NotFoundException('Không tìm thấy bàn');
+
+    const group = table.groups.find((g) => g.groupId === groupId);
+    if (!group) throw new NotFoundException('Không tìm thấy nhóm');
+
+    const dish = group.orders.find((o) => o.dishId === dishId);
+    if (!dish) throw new NotFoundException('Không tìm thấy món ăn');
+
+    dish.quantity = quantity;
+    await table.save();
+
+    return { message: 'Cập nhật số lượng thành công' };
+  }
 }

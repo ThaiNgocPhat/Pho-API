@@ -8,7 +8,7 @@ import { CartModule } from 'src/modules/cart/cart.module';
 import { OrderModule } from 'src/modules/order/order.module';
 import { TableOderModule } from 'src/modules/table-order/table-order.module';
 import { TableModule } from 'src/modules/table/table.module';
-import { GroupModule } from 'src/modules/group/group.module';
+import { ChatModule } from 'src/chat/chat.module';
 
 @Module({
   imports: [
@@ -26,7 +26,7 @@ import { GroupModule } from 'src/modules/group/group.module';
     OrderModule,
     TableOderModule,
     TableModule,
-    GroupModule,
+    ChatModule
   ],
 })
 export class AppModule {}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ChatModule } from 'src/chat/chat.module';
 import { DbCollections } from 'src/common/contants';
 import { OrderSchema } from 'src/models/order.schema';
 import { CartModule } from 'src/modules/cart/cart.module';
@@ -16,6 +17,7 @@ import { TableModule } from 'src/modules/table/table.module';
     DishModule,
     CartModule,
     TableModule,
+    ChatModule
   ],
   providers: [OrderService],
   controllers: [OrderController],

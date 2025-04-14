@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+import { ChatGateway } from 'src/chat/chat.gateway';
 import { DbCollections } from 'src/common/contants';
+import { Cart, CartItem } from 'src/models/cart.schema';
 import { Dish } from 'src/models/dish.schema';
 import { Order } from 'src/models/order.schema';
 import { Table } from 'src/models/table.schema';
-import { CartService } from 'src/modules/cart/cart.service';
-import { CreateOrderDto } from 'src/modules/order/dto/create-order.dto';
+import { CreateCartDto } from 'src/modules/cart/dto/create-cart.dto';
 
 @Injectable()
 export class OrderService {
@@ -14,53 +19,81 @@ export class OrderService {
     @InjectModel(DbCollections.ORDER) private readonly orderModel: Model<Order>,
     @InjectModel(DbCollections.DISH) private readonly dishModel: Model<Dish>,
     @InjectModel(DbCollections.TABLE) private readonly tableModel: Model<Table>,
-    private readonly cartService: CartService,
+    @InjectModel(DbCollections.CART) private readonly cartModel: Model<Cart>,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
-  async create(body: CreateOrderDto) {
-    const newOrder = new this.orderModel({
-      items: body.items,
-    });
+  async addItemToCart(createCartDto: CreateCartDto): Promise<Cart> {
+    const cart = await this.cartModel.findOne();
 
-    await newOrder.save();
+    // Chuyển đổi dishId thành ObjectId
+    const dishId = new Types.ObjectId(createCartDto.dishId);
 
-    await this.cartService.cleanCart();
+    // Lấy thông tin món ăn từ database
+    const dish = await this.dishModel.findById(dishId);
+    if (!dish) {
+      throw new NotFoundException('Món ăn không tồn tại');
+    }
 
-    return newOrder;
+    // Kiểm tra topping hợp lệ
+    const toppings = createCartDto.toppings.map((topping) => topping.trim());
+
+    const newItem: CartItem = {
+      dishId: dishId,
+      toppings: toppings.length ? toppings : [],
+      note: createCartDto.note,
+      quantity: createCartDto.quantity,
+    };
+
+    if (cart) {
+      // Nếu giỏ hàng đã tồn tại, thêm món vào giỏ
+      cart.items.push(newItem);
+      await cart.save();
+      this.chatGateway.server.emit('orderReceived', cart);
+      return cart;
+    } else {
+      // Nếu giỏ hàng chưa có, tạo giỏ hàng mới
+      const newCart = new this.cartModel({
+        items: [newItem],
+        createdAt: new Date(),
+      });
+      const savedCart = await newCart.save();
+      this.chatGateway.server.emit('orderReceived', savedCart);
+      return savedCart;
+    }
   }
-
   async getAllOrders(): Promise<Order[]> {
-    return await this.orderModel.find().exec();
+    return await this.orderModel
+      .find()
+      .populate('dishId') // Populating dishId with the actual Dish data
+      .populate('dishId.toppings') // Populating the toppings inside dishId
+      .exec();
   }
-
-  // // order.service.ts
-  // async deleteDish(tableId: number, groupId: number, dishId: string) {
-  //   const table = await this.tableModel.findOne({ tableId });
-  //   if (!table) throw new NotFoundException('Không tìm thấy bàn');
-
-  //   const group = table.groups.find((g) => g.groupId === groupId);
-  //   if (!group) throw new NotFoundException('Không tìm thấy nhóm');
-
-  //   group.orders = group.orders.filter((o) => o.dishId !== dishId);
-  //   await table.save();
-
-  //   return { message: 'Đã xoá món khỏi nhóm' };
-  // }
 
   async deleteCartByGroup(groupId: string): Promise<void> {
     await this.orderModel.deleteMany({ groupId, isPaid: false }).exec();
   }
 
-  async payGroup(groupId: string): Promise<{ message: string }> {
-    const result = await this.orderModel.updateMany(
-      { groupId, isPaid: false },
-      { $set: { isPaid: true, paidAt: new Date() } },
-    );
-
-    if (result.modifiedCount === 0) {
-      throw new NotFoundException('Không tìm thấy đơn nào để thanh toán.');
+  // order.service.ts
+  async checkout(): Promise<Order> {
+    const cart = await this.cartModel.findOne();
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('Giỏ hàng trống');
     }
 
-    return { message: 'Thanh toán nhóm thành công.' };
+    const order = new this.orderModel({
+      items: cart.items,
+      createdAt: new Date(),
+    });
+
+    const savedOrder = await order.save();
+
+    // Clear cart sau khi tạo order
+    await this.cartModel.deleteMany({});
+
+    // Emit socket cho bếp
+    this.chatGateway.server.emit('orderReceived', savedOrder);
+
+    return savedOrder;
   }
 }

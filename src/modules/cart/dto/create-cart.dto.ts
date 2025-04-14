@@ -1,15 +1,8 @@
-import {
-  IsArray,
-  IsOptional,
-  IsString,
-  IsInt,
-  IsMongoId,
-} from 'class-validator';
-import { Types } from 'mongoose';
+import { IsString, IsArray, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateCartDto {
-  @IsMongoId() // Kiểm tra tính hợp lệ của ObjectId
-  dishId: Types.ObjectId;
+  @IsString()
+  dishId: string;
 
   @IsArray()
   @IsString({ each: true })
@@ -19,6 +12,6 @@ export class CreateCartDto {
   @IsString()
   note?: string;
 
-  @IsInt()
+  @IsNumber()
   quantity: number;
 }

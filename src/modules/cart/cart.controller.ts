@@ -1,16 +1,15 @@
-import { Controller, Post, Body, Get, Delete } from '@nestjs/common';
+import { Controller, Get, Delete } from '@nestjs/common';
 import { CartService } from './cart.service';
-import { CreateCartDto } from './dto/create-cart.dto';
 import { DeleteResult } from 'mongoose';
 
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
-  @Post()
-  async addToCart(@Body() createCartDto: CreateCartDto) {
-    return await this.cartService.addItemToCart(createCartDto);
-  }
+  // @Post()
+  // async addToCart(@Body() createCartDto: CreateCartDto) {
+  //   return await this.cartService.addItemToCart(createCartDto);
+  // }
 
   @Get()
   async getCart() {
