@@ -62,12 +62,19 @@ export class OrderService {
       return savedCart;
     }
   }
-  async getAllOrders(): Promise<Order[]> {
-    return await this.orderModel
-      .find()
-      .populate('dishId') // Populating dishId with the actual Dish data
-      .populate('dishId.toppings') // Populating the toppings inside dishId
-      .exec();
+  async getAllOrders(): Promise<any[]> {
+    const orders = await this.orderModel.find().populate('items.dishId').exec();
+
+    return orders.map((order) => ({
+      _id: order._id,
+      type: order.type,
+      items: order.items.map((item) => ({
+        name: item.dishId?.name || 'Unknown dish',
+        quantity: item.quantity,
+        toppings: item.toppings.join(','),
+        note: item.note || '',
+      })),
+    }));
   }
 
   async deleteCartByGroup(groupId: string): Promise<void> {
@@ -77,23 +84,30 @@ export class OrderService {
   // order.service.ts
   async checkout(): Promise<Order> {
     const cart = await this.cartModel.findOne();
+
     if (!cart || cart.items.length === 0) {
       throw new BadRequestException('Giỏ hàng trống');
     }
 
+    // Gán type mặc định là 'takeaway' (Mang về)
     const order = new this.orderModel({
       items: cart.items,
       createdAt: new Date(),
+      type: 'takeaway', // Mặc định luôn là Mang về
     });
 
-    const savedOrder = await order.save();
+    const savedOrder = await order.save(); // Lưu đơn hàng vào cơ sở dữ liệu
 
     // Clear cart sau khi tạo order
     await this.cartModel.deleteMany({});
 
-    // Emit socket cho bếp
+    // Emit socket cho bếp để nhận đơn hàng
     this.chatGateway.server.emit('orderReceived', savedOrder);
 
     return savedOrder;
+  }
+
+  async deleteOrder(orderId: string): Promise<any> {
+    return await this.orderModel.findByIdAndDelete(orderId);
   }
 }
