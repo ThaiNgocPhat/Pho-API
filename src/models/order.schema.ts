@@ -9,5 +9,14 @@ export class Order extends Document {
 
   @Prop({ required: true, enum: ['takeaway', 'table'] })
   type: string;
+
+  @Prop()
+  groupId?: number;
+
+  @Prop()
+  groupName?: string;
+
+  @Prop()
+  tableId?: number;
 }
 export const OrderSchema = SchemaFactory.createForClass(Order);

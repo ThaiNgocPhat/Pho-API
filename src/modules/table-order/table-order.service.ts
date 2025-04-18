@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { ChatGateway } from 'src/chat/chat.gateway';
 import { DbCollections } from 'src/common/contants';
-import { Dish } from 'src/models/dish.schema';
+import { Order } from 'src/models/order.schema';
 import { TableOrder } from 'src/models/table-order.schema';
 
 @Injectable()
@@ -10,7 +11,8 @@ export class TableOderService {
   constructor(
     @InjectModel(DbCollections.TABLE_ORDER)
     private readonly tableModel: Model<TableOrder>,
-    @InjectModel(DbCollections.DISH) private readonly dishModel: Model<Dish>,
+    @InjectModel(DbCollections.ORDER) private readonly orderModel: Model<Order>,
+    private readonly chatGateway: ChatGateway,
   ) {} // Controller: Đảm bảo rằng body có đủ các thuộc tính cần thiết
   async getOrderByTableId(tableId: number) {
     const table = await this.tableModel.findOne({ tableId });
@@ -47,6 +49,39 @@ export class TableOderService {
     return { message: 'Tạo nhóm thành công', groupId: nextGroupId };
   }
 
+  // async addOrderToGroup(data: {
+  //   tableId: number;
+  //   groupId: number;
+  //   dishId: string;
+  //   name: string;
+  //   quantity: number;
+  //   toppings: string[];
+  //   note?: string;
+  // }) {
+  //   const { tableId, groupId, dishId, name, quantity, toppings, note } = data;
+
+  //   const table = await this.tableModel.findOne({ tableId });
+  //   if (!table) {
+  //     throw new Error('Bàn không tồn tại');
+  //   }
+
+  //   const group = table.groups.find((g) => g.groupId === groupId);
+  //   if (!group) {
+  //     throw new Error('Nhóm không tồn tại');
+  //   }
+
+  //   group.orders.push({
+  //     dishId,
+  //     name,
+  //     quantity,
+  //     toppings,
+  //     note,
+  //   });
+
+  //   await table.save();
+
+  //   return { message: 'Thêm món vào nhóm thành công' };
+  // }
   async addOrderToGroup(data: {
     tableId: number;
     groupId: number;
@@ -68,6 +103,7 @@ export class TableOderService {
       throw new Error('Nhóm không tồn tại');
     }
 
+    // 1. Thêm món vào nhóm (tableModel)
     group.orders.push({
       dishId,
       name,
@@ -78,7 +114,42 @@ export class TableOderService {
 
     await table.save();
 
-    return { message: 'Thêm món vào nhóm thành công' };
+    // 2. Thêm bản ghi vào bảng Order (cho bếp)
+    const newOrder = await this.orderModel.create({
+      items: [
+        {
+          dishId,
+          quantity,
+          toppings,
+          note,
+        },
+      ],
+      type: 'table',
+      groupId,
+      groupName: group.groupName,
+      tableId,
+    });
+
+    // 3. Emit socket để bếp nhận đơn hàng mới (nếu có)
+    this.chatGateway.server.emit('orderReceived', {
+      _id: newOrder._id,
+      items: [
+        {
+          dishId,
+          name,
+          quantity,
+          toppings,
+          note,
+        },
+      ],
+      type: 'table',
+      orderType: 'Tại bàn',
+      groupId,
+      groupName: group.groupName,
+      tableId,
+    });
+
+    return { message: 'Thêm món vào nhóm và gửi đến bếp thành công' };
   }
 
   async deleteGroup(tableId: number, groupId: number) {

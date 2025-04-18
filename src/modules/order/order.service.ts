@@ -68,6 +68,9 @@ export class OrderService {
     return orders.map((order) => ({
       _id: order._id,
       type: order.type,
+      tableId: order.tableId, // Thêm tableId
+      groupId: order.groupId, // Thêm groupId
+      groupName: order.groupName, // Thêm groupName
       items: order.items.map((item) => ({
         name: item.dishId?.name || 'Unknown dish',
         quantity: item.quantity,
