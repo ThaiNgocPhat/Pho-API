@@ -49,39 +49,6 @@ export class TableOderService {
     return { message: 'Tạo nhóm thành công', groupId: nextGroupId };
   }
 
-  // async addOrderToGroup(data: {
-  //   tableId: number;
-  //   groupId: number;
-  //   dishId: string;
-  //   name: string;
-  //   quantity: number;
-  //   toppings: string[];
-  //   note?: string;
-  // }) {
-  //   const { tableId, groupId, dishId, name, quantity, toppings, note } = data;
-
-  //   const table = await this.tableModel.findOne({ tableId });
-  //   if (!table) {
-  //     throw new Error('Bàn không tồn tại');
-  //   }
-
-  //   const group = table.groups.find((g) => g.groupId === groupId);
-  //   if (!group) {
-  //     throw new Error('Nhóm không tồn tại');
-  //   }
-
-  //   group.orders.push({
-  //     dishId,
-  //     name,
-  //     quantity,
-  //     toppings,
-  //     note,
-  //   });
-
-  //   await table.save();
-
-  //   return { message: 'Thêm món vào nhóm thành công' };
-  // }
   async addOrderToGroup(data: {
     tableId: number;
     groupId: number;
@@ -198,6 +165,7 @@ export class TableOderService {
     quantity: number;
   }) {
     const { tableId, groupId, dishId, quantity } = data;
+    console.log('Data received:', data);
 
     const table = await this.tableModel.findOne({ tableId });
     if (!table) throw new NotFoundException('Không tìm thấy bàn');
@@ -210,6 +178,12 @@ export class TableOderService {
 
     dish.quantity = quantity;
     await table.save();
+
+    // ✅ Cập nhật bảng Order
+    await this.orderModel.updateMany(
+      { tableId, groupId, 'items.dishId': dishId },
+      { $set: { 'items.$.quantity': quantity } },
+    );
 
     return { message: 'Cập nhật số lượng thành công' };
   }

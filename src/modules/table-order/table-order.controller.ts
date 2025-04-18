@@ -4,8 +4,8 @@ import {
   Delete,
   Get,
   NotFoundException,
-  Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { AddOrderToGroupDto } from 'src/modules/table-order/dto/add-order-to-group.dto';
@@ -48,7 +48,7 @@ export class TableOderController {
     return this.tableService.removeDishFromGroup(body);
   }
 
-  @Patch('update-quantity')
+  @Put('update-quantity')
   async updateDishQuantity(@Body() body: UpdateDishQuantityDto) {
     return this.tableService.updateDishQuantity(body);
   }
