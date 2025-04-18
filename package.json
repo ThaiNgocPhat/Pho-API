@@ -80,8 +80,8 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
-  "engines": {
-  "node": "16.x",
+ "engines": {
+  "node": "18.x",
   "npm": "8.x"
-}
+  }
 }
