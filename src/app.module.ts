@@ -26,7 +26,7 @@ import { ChatModule } from 'src/chat/chat.module';
     OrderModule,
     TableOderModule,
     TableModule,
-    ChatModule
+    ChatModule,
   ],
 })
 export class AppModule {}
