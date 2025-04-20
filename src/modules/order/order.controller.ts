@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { Order } from 'src/models/order.schema';
+import { OrderItem } from 'src/models/orderitem.schema';
 import { CreateCartDto } from 'src/modules/cart/dto/create-cart.dto';
 import { OrderService } from 'src/modules/order/order.service';
 
@@ -23,9 +24,10 @@ export class OrderController {
   }
 
   @Post('checkout')
-  async checkout(): Promise<Order> {
-    return await this.orderService.checkout();
+  async checkout(@Body() body: { items: OrderItem[] }): Promise<Order> {
+    return await this.orderService.checkout(body.items);
   }
+
   @Delete(':id')
   async deleteOrder(@Param('id') id: string): Promise<any> {
     return await this.orderService.deleteOrder(id);

@@ -10,6 +10,7 @@ import { DbCollections } from 'src/common/contants';
 import { Cart, CartItem } from 'src/models/cart.schema';
 import { Dish } from 'src/models/dish.schema';
 import { Order } from 'src/models/order.schema';
+import { OrderItem } from 'src/models/orderitem.schema';
 import { Table } from 'src/models/table.schema';
 import { CreateCartDto } from 'src/modules/cart/dto/create-cart.dto';
 
@@ -72,7 +73,7 @@ export class OrderService {
       groupId: order.groupId, // Thêm groupId
       groupName: order.groupName, // Thêm groupName
       items: order.items.map((item) => ({
-        name: item.dishId?.name || 'Unknown dish',
+        dish: item.dishId?.name || 'Unknown dish',
         quantity: item.quantity,
         toppings: item.toppings.join(','),
         note: item.note || '',
@@ -85,27 +86,56 @@ export class OrderService {
   }
 
   // order.service.ts
-  async checkout(): Promise<Order> {
-    const cart = await this.cartModel.findOne();
-
-    if (!cart || cart.items.length === 0) {
+  async checkout(items: OrderItem[]): Promise<Order> {
+    if (!items || items.length === 0) {
       throw new BadRequestException('Giỏ hàng trống');
     }
 
-    // Gán type mặc định là 'takeaway' (Mang về)
+    // Bổ sung: Lấy tên món nếu thiếu
+    for (const item of items) {
+      if (typeof item.dishId === 'string') {
+        // Kiểm tra nếu dishId là ObjectId (chuỗi)
+        const dish = await this.dishModel.findById(item.dishId); // Lấy món ăn từ DB
+        if (dish) {
+          // Gán món ăn đã tìm thấy vào item.dishId
+          item.dishId = dish;
+        } else {
+          // Nếu không tìm thấy món ăn, tạo một đối tượng Dish mặc định từ model
+          const defaultDish = new this.dishModel({
+            name: 'Không rõ món',
+            toppings: [], // Mặc định toppings trống
+          });
+
+          // Gán đối tượng Dish mặc định vào item.dishId
+          item.dishId = defaultDish;
+        }
+      }
+
+      // Nếu món đã là đối tượng Dish, chỉ cần đảm bảo có tên
+      if (!item.dishId.name) {
+        item.dishId.name = 'Không rõ món';
+      }
+    }
+
+    // Tạo đơn hàng với các items đã được cập nhật tên
     const order = new this.orderModel({
-      items: cart.items,
+      items,
       createdAt: new Date(),
-      type: 'takeaway', // Mặc định luôn là Mang về
+      type: 'takeaway', // Mặc định là takeaway
     });
 
-    const savedOrder = await order.save(); // Lưu đơn hàng vào cơ sở dữ liệu
+    const savedOrder = await order.save();
 
-    // Clear cart sau khi tạo order
-    await this.cartModel.deleteMany({});
+    const populatedOrder = await this.orderModel
+      .findById(savedOrder._id)
+      .populate('items.dishId')
+      .exec();
 
-    // Emit socket cho bếp để nhận đơn hàng
-    this.chatGateway.server.emit('orderReceived', savedOrder);
+    this.chatGateway.server.emit('orderReceived', populatedOrder);
+    this.chatGateway.server.emit('orderHistoryUpdated', {
+      type: 'takeaway',
+      order: populatedOrder,
+    });
 
     return savedOrder;
   }
