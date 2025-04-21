@@ -8,6 +8,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Order } from 'src/models/order.schema';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -33,5 +34,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleOrderHistoryUpdated(@MessageBody() data: any) {
     console.log('Lịch sử đơn hàng đã được cập nhật:', data);
     this.server.emit('orderHistoryUpdated', data);
+  }
+
+  @SubscribeMessage('orderReceived')
+  handleOrderTable(@MessageBody() data: Order) {
+    console.log('Lịch sử đơn hàng đã được cập nhật:', data);
+    this.server.emit('orderHistoryUpdated', { type: 'table', order: data }); // Phát sự kiện với tên 'orderHistoryUpdated' và dữ liệu tương ứng
   }
 }

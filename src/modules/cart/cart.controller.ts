@@ -6,11 +6,6 @@ import { DeleteResult } from 'mongoose';
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
-  // @Post()
-  // async addToCart(@Body() createCartDto: CreateCartDto) {
-  //   return await this.cartService.addItemToCart(createCartDto);
-  // }
-
   @Get()
   async getCart() {
     return await this.cartService.getCart();

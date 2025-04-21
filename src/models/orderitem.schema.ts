@@ -8,6 +8,9 @@ export class OrderItem {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: DbCollections.DISH })
   dishId: Dish;
 
+  @Prop({ type: String })
+  name?: string;
+
   @Prop([String])
   toppings: string[];
 

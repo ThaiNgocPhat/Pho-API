@@ -59,6 +59,7 @@ export class TableOderService {
     note?: string;
   }) {
     const { tableId, groupId, dishId, name, quantity, toppings, note } = data;
+    console.log('Tên món khi thêm vào:', name);
 
     const table = await this.tableModel.findOne({ tableId });
     if (!table) {
@@ -72,34 +73,16 @@ export class TableOderService {
 
     // 1. Thêm món vào nhóm (tableModel)
     group.orders.push({
-      dishId,
-      name,
-      quantity,
-      toppings,
-      note,
+      dishId: dishId, // Đảm bảo rằng bạn lưu đúng dishId
+      name: name,
+      quantity: quantity,
+      toppings: toppings,
+      note: note,
     });
-
     await table.save();
 
     // 2. Thêm bản ghi vào bảng Order (cho bếp)
     const newOrder = await this.orderModel.create({
-      items: [
-        {
-          dishId,
-          quantity,
-          toppings,
-          note,
-        },
-      ],
-      type: 'table',
-      groupId,
-      groupName: group.groupName,
-      tableId,
-    });
-
-    // 3. Emit socket để bếp nhận đơn hàng mới (nếu có)
-    this.chatGateway.server.emit('orderReceived', {
-      _id: newOrder._id,
       items: [
         {
           dishId,
@@ -110,10 +93,31 @@ export class TableOderService {
         },
       ],
       type: 'table',
+      groupId,
+      groupName: group.groupName,
+      tableId,
+    });
+
+    // 3. Emit socket để bếp và HistoryView nhận đơn hàng mới
+    this.chatGateway.server.emit('orderReceived', {
+      _id: newOrder._id,
+      items: newOrder.items.map((item) => ({
+        dishId: item.dishId,
+        name: item.name || 'Unknown dish',
+        quantity: item.quantity,
+        toppings: item.toppings,
+        note: item.note,
+      })),
+      type: 'table',
       orderType: 'Tại bàn',
       groupId,
       groupName: group.groupName,
       tableId,
+    });
+
+    this.chatGateway.server.emit('orderHistoryUpdated', {
+      type: 'table',
+      order: newOrder, // Gửi bản đầy đủ để HistoryView có thể xử lý.
     });
 
     return { message: 'Thêm món vào nhóm và gửi đến bếp thành công' };

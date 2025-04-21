@@ -65,7 +65,6 @@ export class OrderService {
   }
   async getAllOrders(): Promise<any[]> {
     const orders = await this.orderModel.find().populate('items.dishId').exec();
-
     return orders.map((order) => ({
       _id: order._id,
       type: order.type,
@@ -73,7 +72,7 @@ export class OrderService {
       groupId: order.groupId, // Thêm groupId
       groupName: order.groupName, // Thêm groupName
       items: order.items.map((item) => ({
-        dish: item.dishId?.name || 'Unknown dish',
+        dish: item.dishId?.name || 'Unknown dish', // Xác nhận rằng dishId có thuộc tính name
         quantity: item.quantity,
         toppings: item.toppings.join(','),
         note: item.note || '',
