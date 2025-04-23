@@ -1,24 +1,38 @@
+# version: '3.8'
+
+# services:
+#   nest-app:
+#     build: .
+#     container_name: pho-app
+#     ports:
+#     - "27017:27017"
+#     depends_on:
+#       - mongodb
+#     environment:
+#       - DATABASE_URL=mongodb://mongodb:27017/pho-app
+#     restart: always
+
+#   mongodb:
+#     image: mongo:6.0
+#     container_name: mongodb
+#     ports:
+#       - "27017:27017"
+#     volumes:
+#       - mongo_data:/data/db
+#     restart: always
+
+# volumes:
+#   mongo_data:
 version: '3.8'
 
 services:
   nest-app:
     build: .
-    container_name: pho-app
+    container_name: pho-app-api
     ports:
-    - "27017:27017"
-    depends_on:
-      - mongodb
+      - "3000:3000"  # Cổng ứng dụng NestJS
     environment:
-      - DATABASE_URL=mongodb://mongodb:27017/pho-app
-    restart: always
-
-  mongodb:
-    image: mongo:6.0
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+      - DATABASE_URL=mongodb+srv://thaingocphat231:thaingocphat231@cluster0.0pfokyc.mongodb.net/pho-app-db-v2?retryWrites=true&w=majority&appName=Cluster0
     restart: always
 
 volumes:

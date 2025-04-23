@@ -11,7 +11,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  const port = 7777;
+  const port = process.env.PORT || 7777;
   await app.listen(port, '0.0.0.0');
   console.log(`🚀 Server đang chạy tại http://localhost:${port}`);
 }
