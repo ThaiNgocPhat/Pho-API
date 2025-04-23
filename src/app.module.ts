@@ -9,6 +9,7 @@ import { OrderModule } from 'src/modules/order/order.module';
 import { TableOderModule } from 'src/modules/table-order/table-order.module';
 import { TableModule } from 'src/modules/table/table.module';
 import { ChatModule } from 'src/chat/chat.module';
+import { AppController } from 'src/app.controller';
 
 @Module({
   imports: [
@@ -28,5 +29,6 @@ import { ChatModule } from 'src/chat/chat.module';
     TableModule,
     ChatModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
