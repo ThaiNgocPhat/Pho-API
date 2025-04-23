@@ -115,9 +115,14 @@ export class TableOderService {
       tableId,
     });
 
+    const populatedOrder = await this.orderModel
+      .findById(newOrder._id)
+      .populate('items.dishId') // 👈 populate tên món
+      .lean();
+
     this.chatGateway.server.emit('orderHistoryUpdated', {
       type: 'table',
-      order: newOrder, // Gửi bản đầy đủ để HistoryView có thể xử lý.
+      order: populatedOrder,
     });
 
     return { message: 'Thêm món vào nhóm và gửi đến bếp thành công' };
