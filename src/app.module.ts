@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DishModule } from './modules/dish/dish.module';
 import { ToppingModule } from './modules/topping/topping.module';
-import { HotpotModule } from 'src/modules/hotpot/hotpot.module';
 import { CartModule } from 'src/modules/cart/cart.module';
 import { OrderModule } from 'src/modules/order/order.module';
 import { TableOderModule } from 'src/modules/table-order/table-order.module';
@@ -22,7 +21,6 @@ import { AppController } from 'src/app.controller';
     ),
     DishModule,
     ToppingModule,
-    HotpotModule,
     CartModule,
     OrderModule,
     TableOderModule,

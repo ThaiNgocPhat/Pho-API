@@ -11,9 +11,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  const port = process.env.PORT || 7777; // Thay 7777 bằng PORT từ môi trường Heroku
-  app.listen(port, () => {
-    console.log(`Server đang chạy tại http://localhost:${port}`);
-  });
+  const port = process.env.PORT || 7777;
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Server đang chạy tại http://:${port}`);
 }
 bootstrap();
